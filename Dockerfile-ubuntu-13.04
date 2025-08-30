@@ -1,0 +1,21 @@
+#SOURCE of rootfs https://old-releases.ubuntu.com/releases/ubuntu-core/releases/13.04/release/ubuntu-core-13.04-core-amd64.tar.gz
+
+FROM scratch AS builder-ubuntu-13.04
+ADD ubuntu-core-13.04-core-amd64.tar.gz /
+
+RUN sed -i -e 's/archive.ubuntu.com\|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list &&\
+    sed -i -e 's/deb-src/# deb-src/g' /etc/apt/sources.list &&\
+    sed -i -E 's/^# (deb .* (universe|multiverse))/\1/' /etc/apt/sources.list
+
+RUN mkdir -p /debs && chmod 777 /debs &&\
+    apt-get update &&\
+    apt-get install -y --no-install-recommends -d --reinstall \
+            -o dir::cache::archives="/debs" \
+        libc-bin libc6 socat &&\
+    rm -rf /var/lib/apt/lists/*
+
+ADD ubuntu-core-13.04-core-amd64.tar.gz /rootfs
+RUN for deb in /debs/*.deb; do dpkg-deb -x "$deb" /rootfs; done
+
+FROM scratch AS ubuntu-13.04
+COPY --from=builder-ubuntu-13.04 /rootfs /

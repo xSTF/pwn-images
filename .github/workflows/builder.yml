@@ -22,6 +22,10 @@ jobs:
             tag: 32
           - dockerfile: Dockerfile-64
             tag: 64
+          - dockerfile: Dockerfile-ubuntu-13.04
+            tag: ubuntu-13.04
+          - dockerfile: Dockerfile-64-python3.8-gcc
+            tag: 64-python3.8-gcc
 
     steps:
       - name: Checkout

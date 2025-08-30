@@ -1,0 +1,29 @@
+FROM ubuntu:20.04 AS deps32
+
+RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
+    libc6:i386 && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM tgagor/chisel:20.04 AS chisel-builder
+ARG UBUNTU_RELEASE=20.04
+
+RUN chisel cut --release ubuntu-$UBUNTU_RELEASE --root /rootfs \
+        base-files_base \
+        base-files_release-info \
+        dash_bins \
+        libc6_libs \
+        coreutils_bins
+
+RUN mkdir -p /rootfs/etc && \
+    echo 'nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin' > /rootfs/etc/passwd
+
+ADD https://github.com/xSTF/socat-builder/releases/download/latest/socat /rootfs/usr/local/bin/socat
+RUN chmod +x /rootfs/usr/local/bin/socat
+
+#COPY --from=deps32 /lib/i386-linux-gnu /rootfs/lib/i386-linux-gnu
+COPY --from=deps32 /lib/i386-linux-gnu/libc-2.31.so /rootfs/lib/i386-linux-gnu/libc-2.31.so
+COPY --from=deps32 /lib/i386-linux-gnu/libc.so.6 /rootfs/lib/i386-linux-gnu/libc.so.6
+COPY --from=deps32 /lib/ld-linux.so.2 /rootfs/lib/ld-linux.so.2
+
+FROM scratch
+COPY --from=chisel-builder /rootfs /

@@ -1,0 +1,18 @@
+FROM tgagor/chisel:20.04 AS chisel-builder
+ARG UBUNTU_RELEASE=20.04
+
+RUN chisel cut --release ubuntu-$UBUNTU_RELEASE --root /rootfs \
+        base-files_base \
+        base-files_release-info \
+        dash_bins \
+        libc6_libs \
+        coreutils_bins
+
+RUN mkdir -p /rootfs/etc && \
+    echo 'nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin' > /rootfs/etc/passwd
+
+ADD https://github.com/xSTF/socat-builder/releases/download/latest/socat /rootfs/usr/local/bin/socat
+RUN chmod +x /rootfs/usr/local/bin/socat
+
+FROM scratch
+COPY --from=chisel-builder /rootfs /
